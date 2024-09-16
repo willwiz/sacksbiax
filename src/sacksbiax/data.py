@@ -26,6 +26,15 @@ RISK_FACTORS: Final[list[str]] = list(get_args(RISK_OPTIONS))
 SACKS_NODE_ORDER: Final[dict[int, int]] = {0: 2, 1: 1, 2: 3, 3: 0}
 
 
+class LogLevel(enum.IntEnum):
+    NULL = 0
+    FATAL = 1
+    ERROR = 2
+    WARN = 3
+    INFO = 4
+    DEBUG = 5
+
+
 class CycleState(enum.IntEnum):
     Preload = 0
     Stretch = 1
@@ -36,6 +45,7 @@ class CycleState(enum.IntEnum):
 @dc.dataclass(slots=True)
 class InputArgs:
     directory: list[str]
+    loglevel: LogLevel
 
 
 @dc.dataclass(slots=True)

@@ -1,12 +1,13 @@
 from dataclasses import fields
 import numpy as np
 from ..data import *
+from ..data import LogLevel
 from .parser import parser
 
 
 def parse_cmdline_args(cmd_args: list[str] | None):
     args = parser.parse_args(cmd_args)
-    return InputArgs(args.specimen)
+    return InputArgs(args.names, LogLevel[args.log_level])
 
 
 def import_bxfile(name: str):
