@@ -57,14 +57,13 @@ def compute_shear_angle(kin: Kinematics) -> Vec[f64]:
 
 
 def parse_cycle(kin: Kinematics) -> Vec[i32]:
-    label = np.zeros(len(kin.J), dtype=int)
     max_index = np.argmax(kin.J) + 1
-    # min_index = np.argmin(kin.J)
-    # if min_index > 10:
-    #     min_index = 0
-    # label[:min_index] = CycleState.Preload
-    # label[min_index:max_index] = CycleState.Stretch
-    label[:max_index] = CycleState.Stretch
+    min_index = np.argmin(kin.J)
+    if min_index > 20:
+        min_index = 0
+    label = np.zeros(len(kin.J), dtype=int)
+    label[:min_index] = CycleState.Preload
+    label[min_index:max_index] = CycleState.Stretch
     label[max_index:] = CycleState.Recover
     return label
 
