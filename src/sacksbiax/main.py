@@ -42,7 +42,7 @@ def process_protocol(
     # cycles = [f"{test.d}/t_1 .bx"]
     cycles = sorted(glob(rf"{test.d}/t_*.bx"))
     df = pd.concat(
-        [core_loop(c, def_grad, spec, i, log) for i, c in enumerate(cycles)],
+        [core_loop(c, def_grad, spec, i, log) for i, c in enumerate(cycles, start=1)],
         ignore_index=True,
     )
     df["SetName"] = test.name
