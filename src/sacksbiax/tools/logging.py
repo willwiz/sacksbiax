@@ -18,23 +18,23 @@ class BasicLogger:
         print(f"{now()}::[{level.name:5}]>>{msg}")
 
     def debug(self, msg: str):
-        if self.level <= LogLevel.DEBUG:
+        if self.level >= LogLevel.DEBUG:
             self.print(msg, LogLevel.DEBUG)
 
     def info(self, msg: str):
-        if self.level <= LogLevel.INFO:
+        if self.level >= LogLevel.INFO:
             self.print(msg, LogLevel.INFO)
 
     def warn(self, msg: str):
-        if self.level <= LogLevel.WARN:
+        if self.level >= LogLevel.WARN:
             self.print(msg, LogLevel.WARN)
 
     def error(self, msg: str):
-        if self.level <= LogLevel.ERROR:
+        if self.level >= LogLevel.ERROR:
             self.print(msg, LogLevel.ERROR)
 
     def fatal(self, msg: str):
-        if self.level <= LogLevel.FATAL:
+        if self.level >= LogLevel.FATAL:
             self.print(msg, LogLevel.FATAL)
 
     def exception(self, e: Exception):

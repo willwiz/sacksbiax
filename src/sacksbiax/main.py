@@ -47,7 +47,7 @@ def process_protocol(
     )
     df["SetName"] = test.name
     df = df[[s.name for s in dc.fields(KamenskiyFormat)]]
-    log.info(f"Finished processing protocol!")
+    log.debug(f"Finished processing protocol!")
     return df
 
 
