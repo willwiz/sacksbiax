@@ -1,29 +1,40 @@
-__all__ = [
-    "BXStruct",
-    "KamenskiyFormat",
-    "SpecimenInfo",
-    "SacksProtocol",
-    "InputArgs",
-    "path",
-    "SacksFormat",
-    "SACKS_NODE_ORDER",
-]
+# __all__ = [
+#     "LogLevel",
+#     "ExportFormat",
+#     "BXStruct",
+#     "KamenskiyFormat",
+#     "SpecimenInfo",
+#     "SacksProtocol",
+#     "InputArgs",
+#     "path",
+#     "SacksFormat",
+#     "RawBiaxFormat",
+#     "SACKS_NODE_ORDER",
+# ]
 import os
 import dataclasses as dc
 import enum
 from .types import *
-from typing import Final, Literal, get_args
+from typing import Final
 
 
 def path(*names: str) -> str:
     return os.path.join(*[s for s in names if s])
 
 
-RISK_OPTIONS = Literal["Sex", "HTN", "DM", "CAD", "DYS"]
-RISK_FACTORS: Final[list[str]] = list(get_args(RISK_OPTIONS))
+# RISK_OPTIONS = Literal["Sex", "HTN", "DM", "CAD", "DYS"]
+# RISK_FACTORS: Final[list[str]] = list(get_args(RISK_OPTIONS))
 
 
 SACKS_NODE_ORDER: Final[dict[int, int]] = {0: 2, 1: 1, 2: 3, 3: 0}
+
+BIAX_DATA_ALIASES: dict[str, str] = {
+    "Shear_angle_deg": "ShearAngleDeg",
+    "StressXX_kPa": "txx",
+    "StressXY_kPa": "txy",
+    "StressYX_kPa": "tyx",
+    "StressYY_kPa": "tyy",
+}
 
 
 class LogLevel(enum.IntEnum):
@@ -42,14 +53,42 @@ class CycleState(enum.IntEnum):
     Recover = 3
 
 
+class FileFormat(enum.StrEnum):
+    EXCEL = "EXCEL"
+    CSV = "CSV"
+
+
+class MethodOption(enum.StrEnum):
+    CAUCHY = "CAUCHY"
+    PK1 = "PK1"
+
+
+@dc.dataclass(slots=True)
+class ProgramSettings:
+    input_format: FileFormat
+    export_format: FileFormat
+    method: MethodOption
+    overwrite: bool
+
+
 @dc.dataclass(slots=True)
 class InputArgs:
     directory: list[str]
     loglevel: LogLevel
+    settings: ProgramSettings
 
 
 @dc.dataclass(slots=True)
 class SacksProtocol:
+    d: str
+    i: int
+    x: int
+    y: int
+    name: str
+
+
+@dc.dataclass(slots=True)
+class KamenskiyProtocol:
     d: str
     i: int
     x: int
@@ -142,6 +181,22 @@ class KamenskiyFormat:
     txy: Vec[f64]
     ky: Vec[f64]
     tyx: Vec[f64]
+    Pxx: Vec[f64]
+    Pxy: Vec[f64]
+    Pyx: Vec[f64]
+    Pyy: Vec[f64]
+
+
+@dc.dataclass(slots=True)
+class RawBiaxFormat:
+    time: Vec[f64]
+    XSize_um: Vec[f64]
+    YSize_um: Vec[f64]
+    XForce_mN: Vec[f64]
+    YForce_mN: Vec[f64]
+    Temperature: Vec[f64]
+    ShearAngleDeg: Vec[f64]
+    coord: MatV[f64]
 
 
 @dc.dataclass(slots=True)

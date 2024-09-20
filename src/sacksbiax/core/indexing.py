@@ -2,7 +2,7 @@ __all__ = ["parse_specimen"]
 from glob import glob
 import os
 import re
-from ..io import *
+from ..parsers import *
 from ..data import SacksProtocol, SpecimenInfo
 
 
@@ -17,12 +17,20 @@ def get_dir_structure(name: str):
 
 def parse_directory_name(name: str):
     words = os.path.basename(name).split("-")
-    if len(words) != 3:
-        raise ValueError(
-            f">>>[FATAL]: protocol founder name ({name}) does not match i-x-y"
+    if len(words) == 3:
+        i, x, y = words
+        return SacksProtocol(
+            name, int(i), int(x), int(y), f"{int(x)}-{int(y)} tension save cycle"
         )
-    i, x, y = [int(s) for s in words]
-    return SacksProtocol(name, i, x, y, f"{x}-{y} tension save cycle")
+    elif len(words) == 4:
+        i, x, y, t = words
+        return SacksProtocol(
+            name, int(i), int(x), int(y), f"{int(x)}-{int(y)}-{t} tension save cycle"
+        )
+    else:
+        raise ValueError(
+            f">>>[FATAL]: protocol founder name ({name}) does not match i-x-y, or i-x-y-t"
+        )
 
 
 def get_specimen_dim(name: str):
@@ -49,15 +57,25 @@ def get_specimen_dim(name: str):
     return (dims["x"], dims["y"], dims["h"])
 
 
+def find_first_test(prot: dict[int, SacksProtocol]) -> str:
+    temp = re.compile(r"(\w+)_1(\s+?).bx")
+    for _, p in sorted(prot.items()):
+        first_test = [
+            s for s in glob(f"{p.d}/*_1*.bx") if temp.match(os.path.basename(s))
+        ]
+        if len(first_test) == 1:
+            return first_test[0]
+        elif len(first_test) >= 1:
+            raise ValueError(
+                f">>>[FATAL]: multiple files found that could be the first test: {first_test}"
+            )
+    raise ValueError(f">>>[FATAL]: No file found that could be the first test")
+
+
 def get_initial_free_floating(
     prot: dict[int, SacksProtocol], dims: tuple[float, float, float]
 ):
-    first_test = glob(f"{prot[0].d}/*_1*.bx")
-    if len(first_test) != 1:
-        raise ValueError(
-            f">>>[FATAL]: multiple files found that could be the first test: {first_test}"
-        )
-    first_test = first_test[0]
+    first_test = find_first_test(prot)
     data = import_bxfile(first_test)
     dims = (
         dims[0] * data.stretch_x[0],

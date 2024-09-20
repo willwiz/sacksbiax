@@ -15,7 +15,8 @@ classifiers = [
   "Operating System :: Linux",
   "Development Status :: 0 - Alpha",
 ]
-dependencies = ["numpy", "scipy", "matplotlib", "pandas", "openpyxl"]
+dependencies = ["numpy", "scipy", "matplotlib", "pandas", "xlsxwriter"]
 
 [project.scripts]
 biaxpp = "sacksbiax.main:main_cli"
+bxconv = "sacksbiax.convert:main_cli"

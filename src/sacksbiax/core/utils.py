@@ -4,18 +4,18 @@ from ..types import *
 import numpy as np
 
 
-def mat_vec_contraction(tensor_list: MatV[f64], vec: Vec[f64]) -> float:
+def mat_vec_contraction(tensor_list: MatV[f64], vec: Vec[f64]) -> Vec[f64]:
     mi = np.einsum("mij,j->mi", tensor_list, vec)
     m = np.einsum("mi,mi->m", mi, mi)
     return np.sqrt(m)
 
 
 def RVE_analysis(
-    spec: SpecimenInfo, bx: SacksFormat
+    spec: SpecimenInfo, bx: RawBiaxFormat
 ) -> tuple[Vec[f64], Vec[f64], Vec[f64], Mat[f64]]:
-    Lx0 = spec.dim[0] * bx.stretch_x[0]
-    Ly0 = spec.dim[1] * bx.stretch_y[0]
-    Lz0 = spec.dim[2] / bx.stretch_x[0] / bx.stretch_y[1]
+    Lx0 = spec.dim[0]
+    Ly0 = spec.dim[1]
+    Lz0 = spec.dim[2]
     # Compute Deformation Gradient from initial state
     x_dirt = np.array([1, 0], dtype=float)
     y_dirt = np.array([0, 1], dtype=float)

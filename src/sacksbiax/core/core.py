@@ -1,7 +1,7 @@
 from .utils import RVE_analysis
 from .biax import BiaxialKinematics, stress_homogenous
 from ..data import SACKS_NODE_ORDER, CycleState, Kinematics, Kinetics
-from ..io import *
+from ..parsers import *
 from ..types import *
 from ..data import *
 import numpy as np
@@ -16,7 +16,7 @@ def import_ref_markers(p: str) -> tuple[Vec[f64], Vec[f64]]:
     )
 
 
-def compute_kinematics(def_grad: BiaxialKinematics, bx: SacksFormat) -> Kinematics:
+def compute_kinematics(def_grad: BiaxialKinematics, bx: RawBiaxFormat) -> Kinematics:
     DefGrad = def_grad.deformation_gradient(bx.coord)
     jacobian = DefGrad[:, 0, 0] * DefGrad[:, 1, 1] - DefGrad[:, 0, 1] * DefGrad[:, 1, 0]
     invGrad = np.empty_like(DefGrad, dtype=float)
@@ -28,11 +28,13 @@ def compute_kinematics(def_grad: BiaxialKinematics, bx: SacksFormat) -> Kinemati
     return Kinematics(DefGrad, invGrad, rightCG, jacobian)
 
 
-def compute_kinetics(spec: SpecimenInfo, kin: Kinematics, bx: SacksFormat) -> Kinetics:
+def compute_kinetics_cauchy(
+    spec: SpecimenInfo, kin: Kinematics, bx: RawBiaxFormat
+) -> Kinetics:
     # n_rows = keys.End[-1]
     Lx, Ly, Lz, invGrad_origin = RVE_analysis(spec, bx)
-    T1 = 9.80665 * bx.load_x / Ly / Lz
-    T2 = 9.80665 * bx.load_y / Lx / Lz
+    T1 = bx.XForce_mN / Ly / Lz
+    T2 = bx.YForce_mN / Lx / Lz
     vVals = np.empty((len(T1), 3), dtype=float)
     for k, (f, i, j) in enumerate(zip(invGrad_origin, T1, T2)):
         vVals[k] = stress_homogenous(f, i, j)
@@ -42,6 +44,18 @@ def compute_kinetics(spec: SpecimenInfo, kin: Kinematics, bx: SacksFormat) -> Ki
     cauchy[:, 1, 0] = vVals[:, 1]
     cauchy[:, 1, 1] = vVals[:, 2]
     pk1 = np.einsum("mjk,mlk->mjl", cauchy, kin.Finv)
+    pk2 = np.einsum("mij,mjk->mik", kin.Finv, pk1)
+    return Kinetics(cauchy, pk1, pk2)
+
+
+def compute_kinetics_pk1(
+    spec: SpecimenInfo, kin: Kinematics, bx: RawBiaxFormat
+) -> Kinetics:
+    # n_rows = keys.End[-1]
+    pk1 = np.zeros_like(kin.F, dtype=float)
+    pk1[:, 0, 0] = bx.XForce_mN / spec.dim[1] / spec.dim[2]
+    pk1[:, 1, 1] = bx.YForce_mN / spec.dim[0] / spec.dim[2]
+    cauchy = np.einsum("mjk,mlk->mjl", pk1, kin.F)
     pk2 = np.einsum("mij,mjk->mik", kin.Finv, pk1)
     return Kinetics(cauchy, pk1, pk2)
 
@@ -56,7 +70,7 @@ def compute_shear_angle(kin: Kinematics) -> Vec[f64]:
     )
 
 
-def parse_cycle(kin: Kinematics) -> Vec[i32]:
+def parse_cycle(kin: Kinematics, tag: str | int) -> list[str]:
     max_index = np.argmax(kin.J) + 1
     min_index = np.argmin(kin.J)
     if min_index > 20:
@@ -65,40 +79,42 @@ def parse_cycle(kin: Kinematics) -> Vec[i32]:
     label[:min_index] = CycleState.Preload
     label[min_index:max_index] = CycleState.Stretch
     label[max_index:] = CycleState.Recover
-    return label
+    return [f"{tag}-{CycleState(i).name}" for i in label]
 
 
 def export_kamenskiy_format(
-    spec: SpecimenInfo,
-    data: SacksFormat,
-    cycle: Vec[i32],
+    data: RawBiaxFormat,
+    cycle: list[str] | pd.Series,
     kin: Kinematics,
     sig: Kinetics,
     shear: Vec[f64],
-    tag: int,
 ) -> pd.DataFrame:
     df = dict()
-    df["Cycle"] = [f"{tag}-{CycleState(i).name}" for i in cycle]
+    df["Cycle"] = cycle
     df["Time_S"] = data.time
-    df["XSize_um"] = ((1000.0 * spec.dim[0]) * data.stretch_x).astype(int)
-    df["YSize_um"] = ((1000.0 * spec.dim[1]) * data.stretch_y).astype(int)
+    df["XSize_um"] = data.XSize_um.astype(int)
+    df["YSize_um"] = data.YSize_um.astype(int)
+    df["XForce_mN"] = data.XForce_mN
+    df["YForce_mN"] = data.YForce_mN
+    df["Temperature"] = data.Temperature
     df["XDisplacement_um"] = df["XSize_um"] - df["XSize_um"][0]
     df["YDisplacement_um"] = df["YSize_um"] - df["YSize_um"][0]
-    df["XForce_mN"] = 9.80665 * data.load_x
-    df["YForce_mN"] = 9.80665 * data.load_y
-    df["Temperature"] = 37
     for i in range(4):
         df[f"X{i+1}"] = data.coord[:, 0, i]
         df[f"Y{i+1}"] = data.coord[:, 1, i]
     df["lx"] = kin.F[:, 0, 0]
-    df["kx"] = kin.F[:, 0, 1]
-    df["ky"] = kin.F[:, 1, 0]
+    df["txx"] = sig.sigma[:, 0, 0]
     df["ly"] = kin.F[:, 1, 1]
-    df["txx"] = sig.P[:, 0, 0]
-    df["txy"] = sig.P[:, 0, 1]
-    df["tyx"] = sig.P[:, 1, 0]
-    df["tyy"] = sig.P[:, 1, 1]
+    df["tyy"] = sig.sigma[:, 1, 1]
     df["ShearAngleDeg"] = shear
+    df["kx"] = kin.F[:, 0, 1]
+    df["txy"] = sig.sigma[:, 0, 1]
+    df["ky"] = kin.F[:, 1, 0]
+    df["tyx"] = sig.sigma[:, 1, 0]
+    df["Pxx"] = sig.P[:, 0, 0]
+    df["Pxy"] = sig.P[:, 0, 1]
+    df["Pyx"] = sig.P[:, 1, 0]
+    df["Pyy"] = sig.P[:, 1, 1]
     return pd.DataFrame.from_dict(df)
 
 
