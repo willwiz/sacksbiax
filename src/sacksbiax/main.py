@@ -7,6 +7,7 @@ from .data import *
 from .parsers import parse_cmdline_args
 from .core.indexing import parse_specimen
 from .core.core import *
+from .core.io import *
 
 
 def core_loop(
@@ -71,8 +72,13 @@ def main_loop(
             ex_name = path(name, "All data - corrected")
         case MethodOption.PK1:
             ex_name = path(name, "All data - raw")
+    match setting.export_format:
+        case FileFormat.CSV | FileFormat.AUTO:
+            ex_name = ex_name + ".csv"
+        case FileFormat.EXCEL:
+            ex_name = ex_name + ".xlsx"
     if os.path.isfile(ex_name) and not setting.overwrite:
-        log.info(f"{name} exists! Skipped.")
+        log.info(f"{name} already processed, skipped.")
         return
     log.info(f"Working on specimen {name}")
     spec = parse_specimen(name)
@@ -85,13 +91,14 @@ def main_loop(
     )
     log.debug(f"Fixing Time array to always increasing")
     df["Time_S"] = fix_time(df["Time_S"].to_numpy(dtype=float))
-    if setting.export_format is FileFormat.CSV:
-        log.info(f"Exporting results to CSV")
-        df.to_csv(ex_name + ".csv", index=False)
-    elif setting.export_format is FileFormat.EXCEL:
-        log.info(f"Exporting results to excel")
-        df.to_excel(ex_name + ".xlsx", index=False, engine="xlsxwriter")
-    log.info(f"Processing complete!!!\n\n")
+    match setting.export_format:
+        case FileFormat.CSV | FileFormat.AUTO:
+            log.info(f"Exporting results to CSV: {ex_name}")
+            df.to_csv(ex_name, index=False)
+        case FileFormat.EXCEL:
+            log.info(f"Exporting results to excel")
+            df.to_excel(ex_name, index=False, engine="xlsxwriter")
+    log.info(f"Processing complete!!!\n")
 
 
 def main(args: InputArgs, log: BasicLogger):

@@ -1,7 +1,6 @@
 from dataclasses import fields
 from glob import glob
 import numpy as np
-import pandas as pd
 from ..data import *
 from ..parsers.parser import parser
 
@@ -9,12 +8,13 @@ from ..parsers.parser import parser
 def parse_cmdline_args(cmd_args: list[str] | None):
     args = parser.parse_args(cmd_args)
     return InputArgs(
-        [s for name in args.names for s in glob(name) if s],
+        [s for name in args.names for s in glob(name) if os.path.isdir(s)],
         LogLevel[args.log_level],
         ProgramSettings(
             FileFormat[args.input_format],
             FileFormat[args.export_format],
             MethodOption[args.method],
+            args.n_cores,
             args.overwrite,
         ),
     )

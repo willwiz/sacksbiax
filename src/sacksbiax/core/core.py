@@ -108,8 +108,8 @@ def export_kamenskiy_format(
     df["tyy"] = sig.sigma[:, 1, 1]
     df["ShearAngleDeg"] = shear
     df["kx"] = kin.F[:, 0, 1]
-    df["txy"] = sig.sigma[:, 0, 1]
     df["ky"] = kin.F[:, 1, 0]
+    df["txy"] = sig.sigma[:, 0, 1]
     df["tyx"] = sig.sigma[:, 1, 0]
     df["Pxx"] = sig.P[:, 0, 0]
     df["Pxy"] = sig.P[:, 0, 1]

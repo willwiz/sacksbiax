@@ -4,6 +4,7 @@ import os
 import re
 from ..parsers import *
 from ..data import SacksProtocol, SpecimenInfo
+from .io import *
 
 
 def get_dir_structure(name: str):

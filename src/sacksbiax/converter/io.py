@@ -3,14 +3,34 @@ import pandas as pd
 from glob import glob
 from ..data import *
 from ..parsers import parser
+from scipy import interpolate
+
+
+def repair_array_by_interpolation(time: Vec[f64], serie: pd.Series):
+    x = serie.apply(pd.to_numeric, errors="coerce").to_numpy(np.float64)
+    valid_pos = np.where(~np.isnan(x))
+    fi = interpolate.interp1d(time[valid_pos], x[valid_pos])
+    return fi(time)
 
 
 def import_bx_dataframe(name: str, fmt: FileFormat) -> pd.DataFrame:
+    if fmt is FileFormat.AUTO:
+        ext = os.path.splitext(name)[1]
+        match ext:
+            case ".xlsx" | ".xls":
+                fmt = FileFormat.EXCEL
+            case ".csv":
+                fmt = FileFormat.CSV
+            case _:
+                raise ValueError(f"File extension {ext} not recognized.")
     match fmt:
         case FileFormat.CSV:
             raw = pd.read_csv(name)
         case FileFormat.EXCEL:
             raw = pd.concat(pd.read_excel(name, sheet_name=None), ignore_index=True)
+    time = raw["Time_S"].to_numpy(dtype=np.float64)
+    for k in raw.columns[3:]:
+        raw[k] = repair_array_by_interpolation(time, raw[k])
     return raw.rename(columns=BIAX_DATA_ALIASES)
 
 
@@ -23,6 +43,7 @@ def parse_cmdline_args(cmd_args: list[str] | None):
             FileFormat[args.input_format],
             FileFormat[args.export_format],
             MethodOption[args.method],
+            args.n_cores,
             args.overwrite,
         ),
     )

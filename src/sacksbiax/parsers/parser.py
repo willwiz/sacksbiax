@@ -11,7 +11,7 @@ parser.add_argument(
 parser.add_argument(
     "--input-format",
     type=str.upper,
-    default="EXCEL",
+    default="AUTO",
     choices=list(FileFormat.__members__),
 )
 parser.add_argument(
@@ -23,4 +23,5 @@ parser.add_argument(
 parser.add_argument(
     "--method", type=str.upper, default="CAUCHY", choices=list(MethodOption.__members__)
 )
+parser.add_argument("--n-cores", "-n", type=int, default=1)
 parser.add_argument("--overwrite", action="store_true")

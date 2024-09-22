@@ -56,6 +56,7 @@ class CycleState(enum.IntEnum):
 class FileFormat(enum.StrEnum):
     EXCEL = "EXCEL"
     CSV = "CSV"
+    AUTO = "AUTO"
 
 
 class MethodOption(enum.StrEnum):
@@ -68,6 +69,7 @@ class ProgramSettings:
     input_format: FileFormat
     export_format: FileFormat
     method: MethodOption
+    cores: int
     overwrite: bool
 
 

@@ -13,9 +13,7 @@ from .core.core import (
 from .converter.io import parse_cmdline_args
 import pandas as pd
 import numpy as np
-
-
-def excel_to_csv(): ...
+from concurrent import futures
 
 
 def convert_df_2_bx(raw: pd.DataFrame):
@@ -112,6 +110,8 @@ def compile_protocol_data(
     cycle_state = cycle["Cycle"]
     log.debug(f"Compiling data from cycle")
     df = export_kamenskiy_format(data, cycle_state, kinematics, kinetics, shear)
+    df["SetName"] = t.name
+    df = df[[s.name for s in dc.fields(KamenskiyFormat)]]
     log.debug(f"Finished processing cycle!")
     return df
 
@@ -126,8 +126,16 @@ def main_loop(
             ex_name = path(os.path.dirname(name), "All data - corrected")
         case MethodOption.PK1:
             ex_name = path(os.path.dirname(name), "All data - raw")
+    match setting.export_format:
+        case FileFormat.CSV | FileFormat.AUTO:
+            ex_name = ex_name + ".csv"
+        case FileFormat.EXCEL:
+            ex_name = ex_name + ".xlsx"
+    if os.path.isfile(ex_name) and not setting.overwrite:
+        log.info(f"{name} already processed, skipped.")
+        return
     log.info(f"Working on specimen {name}")
-    raw = import_bx_dataframe(name, FileFormat.EXCEL)
+    raw = import_bx_dataframe(name, setting.input_format)
     spec = get_specimen_info(raw)
     df = pd.concat(
         [
@@ -138,18 +146,36 @@ def main_loop(
     )
     log.debug(f"Fixing Time array to always increasing")
     df["Time_S"] = fix_time(df["Time_S"].to_numpy(dtype=float))
-    if setting.export_format is FileFormat.CSV:
-        log.info(f"Exporting results to CSV: {ex_name}")
-        df.to_csv(ex_name + ".csv", index=False)
-    elif setting.export_format is FileFormat.EXCEL:
-        log.info(f"Exporting results to excel")
-        df.to_excel(ex_name + ".xlsx", index=False, engine="xlsxwriter")
-    log.info(f"Processing complete!!!\n\n")
+    match setting.export_format:
+        case FileFormat.CSV | FileFormat.AUTO:
+            log.info(f"Exporting results to CSV: {ex_name}")
+            df.to_csv(ex_name, index=False)
+        case FileFormat.EXCEL:
+            log.info(f"Exporting results to excel")
+            df.to_excel(ex_name, index=False, engine="xlsxwriter")
+    log.info(f"Processing complete!!!\n")
 
 
 def main(args: InputArgs, log: BasicLogger):
-    for name in args.directory:
-        main_loop(name, args.settings, log)
+    if args.settings.cores > 1:
+        future_pool = dict()
+        with futures.ProcessPoolExecutor(args.settings.cores) as exec:
+            for name in args.directory:
+                future_pool[
+                    exec.submit(main_loop, name=name, setting=args.settings, log=log)
+                ] = name
+            for future in futures.as_completed(future_pool):
+                try:
+                    future.result()
+                except KeyboardInterrupt:
+                    print("canceling jobs, please wait")
+                    exec.shutdown(wait=True, cancel_futures=True)
+                except Exception as e:
+                    print(f"Error on {future_pool[future]}")
+                    raise e
+    else:
+        for name in args.directory:
+            main_loop(name, args.settings, log)
 
 
 def main_cli(cmd_args: list[str] | None = None):
