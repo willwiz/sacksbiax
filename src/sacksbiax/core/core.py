@@ -55,7 +55,20 @@ def compute_kinetics_pk1(
     pk1 = np.zeros_like(kin.F, dtype=float)
     pk1[:, 0, 0] = bx.XForce_mN / spec.dim[1] / spec.dim[2]
     pk1[:, 1, 1] = bx.YForce_mN / spec.dim[0] / spec.dim[2]
-    cauchy = np.einsum("mjk,mlk->mjl", pk1, kin.F)
+    cauchy = np.einsum("mij,mkj->mik", pk1, kin.F)
+    pk2 = np.einsum("mij,mjk->mik", kin.Finv, pk1)
+    return Kinetics(cauchy, pk1, pk2)
+
+
+def compute_kinetics_nominal(
+    spec: SpecimenInfo, kin: Kinematics, bx: RawBiaxFormat
+) -> Kinetics:
+    # n_rows = keys.End[-1]
+    nominal = np.zeros_like(kin.F, dtype=float)
+    nominal[:, 0, 0] = bx.XForce_mN / spec.dim[1] / spec.dim[2]
+    nominal[:, 1, 1] = bx.YForce_mN / spec.dim[0] / spec.dim[2]
+    cauchy = np.einsum("mij,mjk->mik", kin.F, nominal)
+    pk1 = nominal.swapaxes(1, 2)
     pk2 = np.einsum("mij,mjk->mik", kin.Finv, pk1)
     return Kinetics(cauchy, pk1, pk2)
 

@@ -50,9 +50,11 @@ Make a virtual environment
 python3 -m venv .venv
 ```
 Activate environment
+Linux:
 ```bash
 source .venv/bin/activate
 ```
+Windows:
 ```Powershell
 .venv/Script/activate
 ```

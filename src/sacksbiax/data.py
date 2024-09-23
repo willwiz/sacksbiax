@@ -62,6 +62,7 @@ class FileFormat(enum.StrEnum):
 class MethodOption(enum.StrEnum):
     CAUCHY = "CAUCHY"
     PK1 = "PK1"
+    NOMINAL = "NOMINAL"
 
 
 @dc.dataclass(slots=True)

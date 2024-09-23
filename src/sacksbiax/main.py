@@ -28,6 +28,8 @@ def core_loop(
             kinetics = compute_kinetics_cauchy(spec, kinematics, data)
         case MethodOption.PK1:
             kinetics = compute_kinetics_pk1(spec, kinematics, data)
+        case MethodOption.NOMINAL:
+            kinetics = compute_kinetics_nominal(spec, kinematics, data)
     log.debug(f"Computing shear angle")
     shear = compute_shear_angle(kinematics)
     log.debug(f"Finding loading and and unloading points")
@@ -70,7 +72,7 @@ def main_loop(
     match setting.method:
         case MethodOption.CAUCHY:
             ex_name = path(name, "All data - corrected")
-        case MethodOption.PK1:
+        case MethodOption.PK1 | MethodOption.NOMINAL:
             ex_name = path(name, "All data - raw")
     match setting.export_format:
         case FileFormat.CSV | FileFormat.AUTO:
