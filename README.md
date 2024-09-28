@@ -16,8 +16,7 @@ Biaxial Data Analysis
 
 
 # About / Synopsis
-
-* For the collaboration project with Alexey Kamenskiy et al.
+* Biaxial mechanics data analysis
 * Project status: pilot testing
 * Please cite
 

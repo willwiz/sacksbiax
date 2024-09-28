@@ -15,7 +15,7 @@ class BasicLogger:
         self.level = level
 
     def print(self, msg: str, level: LogLevel):
-        print(f"{now()}::[{level.name:5}]>>{msg}")
+        print(f"{now()}[{level.name:5}]>>> {msg}")
 
     def debug(self, msg: str):
         if self.level >= LogLevel.DEBUG:

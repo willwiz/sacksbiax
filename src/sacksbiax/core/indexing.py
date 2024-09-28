@@ -3,7 +3,7 @@ from glob import glob
 import os
 import re
 from ..parsers import *
-from ..data import SacksProtocol, SpecimenInfo
+from ..data import BXProtocol, SpecimenInfo
 from .io import *
 
 
@@ -20,12 +20,12 @@ def parse_directory_name(name: str):
     words = os.path.basename(name).split("-")
     if len(words) == 3:
         i, x, y = words
-        return SacksProtocol(
+        return BXProtocol(
             name, int(i), int(x), int(y), f"{int(x)}-{int(y)} tension save cycle"
         )
     elif len(words) == 4:
         i, x, y, t = words
-        return SacksProtocol(
+        return BXProtocol(
             name, int(i), int(x), int(y), f"{int(x)}-{int(y)}-{t} tension save cycle"
         )
     else:
@@ -58,7 +58,7 @@ def get_specimen_dim(name: str):
     return (dims["x"], dims["y"], dims["h"])
 
 
-def find_first_test(prot: dict[int, SacksProtocol]) -> str:
+def find_first_test(prot: dict[int, BXProtocol]) -> str:
     temp = re.compile(r"(\w+)_1(\s+?).bx")
     for _, p in sorted(prot.items()):
         first_test = [
@@ -74,7 +74,7 @@ def find_first_test(prot: dict[int, SacksProtocol]) -> str:
 
 
 def get_initial_free_floating(
-    prot: dict[int, SacksProtocol], dims: tuple[float, float, float]
+    prot: dict[int, BXProtocol], dims: tuple[float, float, float]
 ):
     first_test = find_first_test(prot)
     data = import_bxfile(first_test)

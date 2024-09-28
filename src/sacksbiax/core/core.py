@@ -43,7 +43,7 @@ def compute_kinetics_cauchy(
     cauchy[:, 0, 1] = vVals[:, 1]
     cauchy[:, 1, 0] = vVals[:, 1]
     cauchy[:, 1, 1] = vVals[:, 2]
-    pk1 = np.einsum("mjk,mlk->mjl", cauchy, kin.Finv)
+    pk1 = np.einsum("mij,mkj->mik", cauchy, kin.Finv)
     pk2 = np.einsum("mij,mjk->mik", kin.Finv, pk1)
     return Kinetics(cauchy, pk1, pk2)
 

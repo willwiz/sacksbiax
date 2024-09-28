@@ -1,28 +1,35 @@
-import os
-from glob import glob
-import dataclasses as dc
-import pandas as pd
+from .core.biax import BiaxialKinematics
+from .converter.io import import_bx_dataframe
 from .tools.logging import BasicLogger
 from .data import *
-from .parsers import parse_cmdline_args
-from .core.indexing import parse_specimen
-from .core.core import *
-from .core.io import *
+from .core.core import (
+    compute_kinematics,
+    compute_kinetics_cauchy,
+    compute_kinetics_pk1,
+    compute_kinetics_nominal,
+    compute_shear_angle,
+    export_kamenskiy_format,
+    fix_time,
+)
+from .converter.core import convert_df_2_bx, find_reference_markers, get_specimen_info
+from .converter.io import parse_cmdline_args
+import pandas as pd
+from concurrent import futures
 
 
-def core_loop(
-    name: str,
-    def_grad: BiaxialKinematics,
+def compile_protocol_data(
+    t: BXProtocol,
+    raw: pd.DataFrame,
     spec: SpecimenInfo,
     setting: ProgramSettings,
-    cycle: int,
     log: BasicLogger,
-):
-    log.debug(f"Working on cycle {name}")
-    data = convert_bxfile(spec, name)
-    log.debug(f"Computing kinematics")
+) -> pd.DataFrame | None:
+    cycle = raw[raw["SetName"] == t.name]
+    data = convert_df_2_bx(cycle)
+    x_ref, y_ref = find_reference_markers(cycle)
+    def_grad = BiaxialKinematics(x_ref, y_ref)
     kinematics = compute_kinematics(def_grad, data)
-    log.debug(f"Computing kinetics")
+    log.debug(f"Computing kinetics using {setting.method.name}")
     match setting.method:
         case MethodOption.CAUCHY:
             kinetics = compute_kinetics_cauchy(spec, kinematics, data)
@@ -33,34 +40,12 @@ def core_loop(
     log.debug(f"Computing shear angle")
     shear = compute_shear_angle(kinematics)
     log.debug(f"Finding loading and and unloading points")
-    cycle_state = parse_cycle(kinematics, cycle)
+    cycle_state = cycle["Cycle"]
     log.debug(f"Compiling data from cycle")
     df = export_kamenskiy_format(data, cycle_state, kinematics, kinetics, shear)
-    log.debug(f"Finished processing cycle!")
-    return df
-
-
-def process_protocol(
-    test: SacksProtocol, spec: SpecimenInfo, setting: ProgramSettings, log: BasicLogger
-) -> pd.DataFrame | None:
-    cycles = sorted(glob(rf"{test.d}/t_*.bx"))
-    if len(cycles) == 0:
-        log.info(f"No BX file found in {test.name}. Protocol is skipped.")
-        return None
-    log.info(f"Working on protocol {test.name}")
-    x_ref, y_ref = import_ref_markers(path(test.d, "marker.ref"))
-    def_grad = BiaxialKinematics(x_ref, y_ref)
-    # cycles = [f"{test.d}/t_1 .bx"]
-    df = pd.concat(
-        [
-            core_loop(c, def_grad, spec, setting, i, log)
-            for i, c in enumerate(cycles, start=1)
-        ],
-        ignore_index=True,
-    )
-    df["SetName"] = test.name
+    df["SetName"] = t.name
     df = df[[s.name for s in dc.fields(KamenskiyFormat)]]
-    log.debug(f"Finished processing protocol!")
+    log.debug(f"Finished processing cycle!")
     return df
 
 
@@ -71,9 +56,9 @@ def main_loop(
 ):
     match setting.method:
         case MethodOption.CAUCHY:
-            ex_name = path(name, "All data - corrected")
+            ex_name = path(os.path.dirname(name), "All data - corrected")
         case MethodOption.PK1 | MethodOption.NOMINAL:
-            ex_name = path(name, "All data - raw")
+            ex_name = path(os.path.dirname(name), "All data - raw")
     match setting.export_format:
         case FileFormat.CSV | FileFormat.AUTO:
             ex_name = ex_name + ".csv"
@@ -83,10 +68,11 @@ def main_loop(
         log.info(f"{name} already processed, skipped.")
         return
     log.info(f"Working on specimen {name}")
-    spec = parse_specimen(name)
+    raw = import_bx_dataframe(name, setting.input_format)
+    spec = get_specimen_info(raw)
     df = pd.concat(
         [
-            process_protocol(t, spec, setting, log)
+            compile_protocol_data(t, raw, spec, setting, log)
             for _, t in sorted(spec.tests.items())
         ],
         ignore_index=True,
@@ -104,8 +90,25 @@ def main_loop(
 
 
 def main(args: InputArgs, log: BasicLogger):
-    for name in args.directory:
-        main_loop(name, args.settings, log)
+    if args.settings.cores > 1:
+        future_pool = dict()
+        with futures.ProcessPoolExecutor(args.settings.cores) as exec:
+            for name in args.directory:
+                future_pool[
+                    exec.submit(main_loop, name=name, setting=args.settings, log=log)
+                ] = name
+            for future in futures.as_completed(future_pool):
+                try:
+                    future.result()
+                except KeyboardInterrupt:
+                    print("canceling jobs, please wait")
+                    exec.shutdown(wait=True, cancel_futures=True)
+                except Exception as e:
+                    print(f"Error on {future_pool[future]}")
+                    raise e
+    else:
+        for name in args.directory:
+            main_loop(name, args.settings, log)
 
 
 def main_cli(cmd_args: list[str] | None = None):

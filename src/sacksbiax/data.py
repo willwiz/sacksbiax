@@ -82,16 +82,7 @@ class InputArgs:
 
 
 @dc.dataclass(slots=True)
-class SacksProtocol:
-    d: str
-    i: int
-    x: int
-    y: int
-    name: str
-
-
-@dc.dataclass(slots=True)
-class KamenskiyProtocol:
+class BXProtocol:
     d: str
     i: int
     x: int
@@ -102,7 +93,7 @@ class KamenskiyProtocol:
 @dc.dataclass(slots=True)
 class SpecimenInfo:
     n_test: int
-    tests: dict[int, SacksProtocol]
+    tests: dict[int, BXProtocol]
     dim: tuple[float, float, float]
     x_iff: Vec[f64]
     y_iff: Vec[f64]
