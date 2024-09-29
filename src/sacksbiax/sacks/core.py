@@ -4,7 +4,7 @@ import os
 import re
 from ..parsers import *
 from ..data import BXProtocol, SpecimenInfo
-from .io import *
+from .fio import *
 
 
 def get_dir_structure(name: str):

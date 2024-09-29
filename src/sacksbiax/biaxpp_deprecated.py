@@ -2,13 +2,7 @@ from .core.biax import BiaxialKinematics
 from .tools.logging import BasicLogger
 from .data import *
 from .core import *
-from .converter.core import (
-    convert_df_2_bx,
-    find_reference_markers_auto,
-    find_reference_markers_every,
-    find_reference_markers_first,
-    get_specimen_info,
-)
+from .converter.core import convert_df_2_bx, get_specimen_info
 import pandas as pd
 from concurrent import futures
 
@@ -17,19 +11,12 @@ def compile_protocol_data(
     t: BXProtocol,
     raw: pd.DataFrame,
     spec: SpecimenInfo,
+    def_grad: BiaxialKinematics,
     setting: ProgramSettings,
     log: BasicLogger,
 ) -> pd.DataFrame | None:
     cycle = raw[raw["SetName"] == t.name]
     data = convert_df_2_bx(cycle)
-    match setting.ref_state:
-        case ReferenceStateOption.AUTO:
-            x_ref, y_ref = find_reference_markers_auto(raw)
-        case ReferenceStateOption.EVERY:
-            x_ref, y_ref = find_reference_markers_every(cycle)
-        case ReferenceStateOption.FIRST:
-            x_ref, y_ref = find_reference_markers_first(raw)
-    def_grad = BiaxialKinematics(x_ref, y_ref)
     kinematics = compute_kinematics(def_grad, data)
     log.debug(f"Computing kinetics using {setting.stress_method}")
     match setting.stress_method:
@@ -51,21 +38,33 @@ def compile_protocol_data(
     return df
 
 
+def find_reference_markers(raw: pd.DataFrame) -> tuple[Vec[f64], Vec[f64]]:
+    preconditioning = raw["SetName"].str.contains("precond", case=False)
+    preload = raw["Cycle"].str.contains("preload", case=False)
+    valid_pts = ~preconditioning & ~preload
+    k = raw[valid_pts].index[0]
+    return (
+        raw[[f"X{i+1}" for i in range(4)]].iloc[k].to_numpy(dtype=float),
+        raw[[f"Y{i+1}" for i in range(4)]].iloc[k].to_numpy(dtype=float),
+    )
+
+
 def main_loop(
     name: str,
     setting: ProgramSettings,
     log: BasicLogger,
 ):
     ex_name = create_export_name(name, setting)
-    if ex_name is None:
+    if not ex_name:
         log.info(f"{name} already processed, skipped.")
         return
     log.info(f"Working on specimen {name}")
     raw = import_bx_dataframe(name, setting.input_format)
     spec = get_specimen_info(raw)
+    def_grad = BiaxialKinematics(*find_reference_markers(raw))
     df = pd.concat(
         [
-            compile_protocol_data(t, raw, spec, setting, log)
+            compile_protocol_data(t, raw, spec, def_grad, setting, log)
             for _, t in sorted(spec.tests.items())
         ],
         ignore_index=True,

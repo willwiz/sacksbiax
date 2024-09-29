@@ -1,13 +1,11 @@
-import os
 from glob import glob
 import dataclasses as dc
 import pandas as pd
 from .tools.logging import BasicLogger
 from .data import *
-from .parsers import parse_cmdline_args
-from .core.indexing import parse_specimen
 from .core.core import *
 from .core.io import *
+from .sacks import parse_specimen, convert_bxfile
 
 
 def core_loop(
@@ -23,12 +21,12 @@ def core_loop(
     log.debug(f"Computing kinematics")
     kinematics = compute_kinematics(def_grad, data)
     log.debug(f"Computing kinetics")
-    match setting.method:
-        case MethodOption.CAUCHY:
+    match setting.stress_method:
+        case StressMethodOption.CAUCHY:
             kinetics = compute_kinetics_cauchy(spec, kinematics, data)
-        case MethodOption.PK1:
+        case StressMethodOption.PK1:
             kinetics = compute_kinetics_pk1(spec, kinematics, data)
-        case MethodOption.NOMINAL:
+        case StressMethodOption.NOMINAL:
             kinetics = compute_kinetics_nominal(spec, kinematics, data)
     log.debug(f"Computing shear angle")
     shear = compute_shear_angle(kinematics)
@@ -69,17 +67,8 @@ def main_loop(
     setting: ProgramSettings,
     log: BasicLogger,
 ):
-    match setting.method:
-        case MethodOption.CAUCHY:
-            ex_name = path(name, "All data - corrected")
-        case MethodOption.PK1 | MethodOption.NOMINAL:
-            ex_name = path(name, "All data - raw")
-    match setting.export_format:
-        case FileFormat.CSV | FileFormat.AUTO:
-            ex_name = ex_name + ".csv"
-        case FileFormat.EXCEL:
-            ex_name = ex_name + ".xlsx"
-    if os.path.isfile(ex_name) and not setting.overwrite:
+    ex_name = create_export_name(name, setting)
+    if ex_name is None:
         log.info(f"{name} already processed, skipped.")
         return
     log.info(f"Working on specimen {name}")
@@ -93,13 +82,8 @@ def main_loop(
     )
     log.debug(f"Fixing Time array to always increasing")
     df["Time_S"] = fix_time(df["Time_S"].to_numpy(dtype=float))
-    match setting.export_format:
-        case FileFormat.CSV | FileFormat.AUTO:
-            log.info(f"Exporting results to CSV: {ex_name}")
-            df.to_csv(ex_name, index=False)
-        case FileFormat.EXCEL:
-            log.info(f"Exporting results to excel")
-            df.to_excel(ex_name, index=False, engine="xlsxwriter")
+    log.info(f"Exporting results to {setting.export_format}: {ex_name}")
+    export_bx_dataframe(ex_name, df, setting)
     log.info(f"Processing complete!!!\n")
 
 
@@ -109,7 +93,7 @@ def main(args: InputArgs, log: BasicLogger):
 
 
 def main_cli(cmd_args: list[str] | None = None):
-    args = parse_cmdline_args(cmd_args)
+    args = parse_cmdline_args(cmd_args, method="dir")
     log = BasicLogger(args.loglevel)
     try:
         main(args, log)

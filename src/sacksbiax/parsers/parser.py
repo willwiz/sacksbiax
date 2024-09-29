@@ -1,6 +1,12 @@
 __all__ = ["parser"]
 from argparse import ArgumentParser
-from ..data import FileFormat, LogLevel, MethodOption
+from ..data import (
+    FileFormat,
+    LogLevel,
+    ReferenceStateOption,
+    StressMethodOption,
+    WriteMode,
+)
 
 
 parser = ArgumentParser("biaxpp")
@@ -21,7 +27,28 @@ parser.add_argument(
     choices=list(FileFormat.__members__),
 )
 parser.add_argument(
-    "--method", type=str.upper, default="CAUCHY", choices=list(MethodOption.__members__)
+    "--write-mode",
+    type=str.lower,
+    default="w",
+    choices=list(WriteMode.__members__),
+)
+parser.add_argument(
+    "--tag",
+    type="All data",
+    default=None,
+    choices=list(WriteMode.__members__),
+)
+parser.add_argument(
+    "--method",
+    type=str.upper,
+    default="CAUCHY",
+    choices=list(StressMethodOption.__members__),
+)
+parser.add_argument(
+    "--ref",
+    type=str.upper,
+    default="EVERY",
+    choices=list(ReferenceStateOption.__members__),
 )
 parser.add_argument("--n-cores", "-n", type=int, default=1)
 parser.add_argument("--overwrite", action="store_true")

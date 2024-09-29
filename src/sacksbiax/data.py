@@ -15,7 +15,7 @@ import os
 import dataclasses as dc
 import enum
 from .types import *
-from typing import Final
+from typing import Final, Literal
 
 
 def path(*names: str) -> str:
@@ -59,17 +59,31 @@ class FileFormat(enum.StrEnum):
     AUTO = "AUTO"
 
 
-class MethodOption(enum.StrEnum):
+class WriteMode(enum.StrEnum):
+    w = "w"
+    wb = "wb"
+
+
+class StressMethodOption(enum.StrEnum):
     CAUCHY = "CAUCHY"
     PK1 = "PK1"
     NOMINAL = "NOMINAL"
+
+
+class ReferenceStateOption(enum.StrEnum):
+    AUTO = "AUTO"
+    EVERY = "EVERY"
+    FIRST = "FIRST"
 
 
 @dc.dataclass(slots=True)
 class ProgramSettings:
     input_format: FileFormat
     export_format: FileFormat
-    method: MethodOption
+    export_mode: WriteMode
+    stress_method: StressMethodOption
+    ref_state: ReferenceStateOption
+    tag: str
     cores: int
     overwrite: bool
 

@@ -54,7 +54,7 @@ def get_specimen_info(raw: pd.DataFrame):
     return SpecimenInfo(len(prots), prots, dim, x_iff, y_iff)
 
 
-def find_reference_markers(
+def find_reference_markers_every(
     raw: pd.DataFrame, trys: int = 100
 ) -> tuple[Vec[f64], Vec[f64]]:
     trys = min(trys, len(raw) // 2)
@@ -64,6 +64,24 @@ def find_reference_markers(
                 raw[[f"X{i+1}" for i in range(4)]].iloc[k].to_numpy(dtype=float),
                 raw[[f"Y{i+1}" for i in range(4)]].iloc[k].to_numpy(dtype=float),
             )
+    return (
+        raw[[f"X{i+1}" for i in range(4)]].iloc[0].to_numpy(dtype=float),
+        raw[[f"Y{i+1}" for i in range(4)]].iloc[0].to_numpy(dtype=float),
+    )
+
+
+def find_reference_markers_auto(raw: pd.DataFrame) -> tuple[Vec[f64], Vec[f64]]:
+    preconditioning = raw["SetName"].str.contains("precond", case=False)
+    preload = raw["Cycle"].str.contains("preload", case=False)
+    valid_pts = ~preconditioning & ~preload
+    k = raw[valid_pts].index[0]
+    return (
+        raw[[f"X{i+1}" for i in range(4)]].iloc[k].to_numpy(dtype=float),
+        raw[[f"Y{i+1}" for i in range(4)]].iloc[k].to_numpy(dtype=float),
+    )
+
+
+def find_reference_markers_first(raw: pd.DataFrame) -> tuple[Vec[f64], Vec[f64]]:
     return (
         raw[[f"X{i+1}" for i in range(4)]].iloc[0].to_numpy(dtype=float),
         raw[[f"Y{i+1}" for i in range(4)]].iloc[0].to_numpy(dtype=float),

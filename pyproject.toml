@@ -25,5 +25,5 @@ dependencies = [
 ]
 
 [project.scripts]
-biaxpp = "sacksbiax.biaxpp:main_cli"
+sackspp = "sacksbiax.sackspp:main_cli"
 bxconv = "sacksbiax.bxconv:main_cli"

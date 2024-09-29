@@ -1,7 +1,7 @@
 from typing import Final
 import numpy as np
 from scipy.linalg import lstsq
-from ..types import MatV, Mat, Vec, f64
+from ..types import *
 
 
 dfdr: Vec[f64] = 0.25 * np.array([-1, -1, 1, 1], dtype=float)
