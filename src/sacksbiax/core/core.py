@@ -1,10 +1,10 @@
 import re
 from .utils import RVE_analysis
 from .biax import BiaxialKinematics, stress_homogenous
-from ..data import SACKS_NODE_ORDER, CycleState, Kinematics, Kinetics
+from ..datatypes import SACKS_NODE_ORDER, CycleState, Kinematics, Kinetics
 from ..parsers import *
 from ..types import *
-from ..data import *
+from ..datatypes import *
 import numpy as np
 import pandas as pd
 

@@ -3,7 +3,7 @@ from glob import glob
 import os
 import re
 from ..parsers import *
-from ..data import BXProtocol, SpecimenInfo
+from ..datatypes import BXProtocol, SpecimenInfo
 from .fio import *
 
 

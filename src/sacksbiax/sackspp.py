@@ -2,7 +2,7 @@ from glob import glob
 import dataclasses as dc
 import pandas as pd
 from .tools.logging import BasicLogger
-from .data import *
+from .datatypes import *
 from .core.core import *
 from .core.io import *
 from .sacks import parse_specimen, convert_bxfile

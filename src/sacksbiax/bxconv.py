@@ -1,6 +1,6 @@
 from .core.biax import BiaxialKinematics
 from .tools.logging import BasicLogger
-from .data import *
+from .datatypes import *
 from .core import *
 from .converter.core import (
     convert_df_2_bx,

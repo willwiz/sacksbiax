@@ -1,6 +1,6 @@
 __all__ = ["parser"]
 import argparse
-from ..data import (
+from ..datatypes import (
     FileFormat,
     LogLevel,
     ReferenceStateOption,

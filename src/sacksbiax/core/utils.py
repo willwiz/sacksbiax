@@ -1,5 +1,5 @@
 from .biax import BiaxialKinematics
-from ..data import *
+from ..datatypes import *
 from ..types import *
 import numpy as np
 

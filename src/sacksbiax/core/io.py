@@ -3,7 +3,7 @@ from typing import Literal
 import numpy as np
 import pandas as pd
 from scipy import interpolate
-from ..data import *
+from ..datatypes import *
 from ..parsers.parser import parser
 
 

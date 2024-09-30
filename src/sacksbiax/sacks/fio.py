@@ -1,6 +1,6 @@
 from dataclasses import fields
 import numpy as np
-from ..data import *
+from ..datatypes import *
 
 
 def import_bxfile(name: str):
