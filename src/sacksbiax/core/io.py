@@ -41,12 +41,19 @@ def repair_array_by_interpolation(time: Vec[f64], serie: pd.Series):
     return fi(time)
 
 
-def create_export_name(name: str, setting: ProgramSettings) -> str | None:
+def create_export_name(
+    name: str, setting: ProgramSettings, arg_type: Literal["file", "dir"] = "file"
+) -> str | None:
+    match arg_type:
+        case "file":
+            folder = os.path.dirname(name)
+        case "dir":
+            folder = name
     match setting.stress_method:
         case StressMethodOption.CAUCHY:
-            ex_name = path(os.path.dirname(name), f"{setting.tag} - corrected")
+            ex_name = path(folder, f"{setting.tag} - corrected")
         case StressMethodOption.PK1 | StressMethodOption.NOMINAL:
-            ex_name = path(os.path.dirname(name), f"{setting.tag} - raw")
+            ex_name = path(folder, f"{setting.tag} - raw")
     match setting.export_format:
         case FileFormat.CSV | FileFormat.AUTO:
             ex_name = ex_name + ".csv"

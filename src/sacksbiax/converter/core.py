@@ -21,15 +21,10 @@ def convert_df_2_bx(raw: pd.DataFrame):
 
 
 def guess_dim(raw: pd.DataFrame, trys: int = 20):
-    for k in range(trys):
-        if np.allclose(raw[["XDisplacement_um", "YDisplacement_um"]].iloc[k], [0, 0]):
-            Lx0 = raw["XSize_um"].iat[0] / 1000.0
-            Ly0 = raw["YSize_um"].iat[0] / 1000.0
-            x_iff = raw[[f"X{i+1}" for i in range(4)]].iloc[k].to_numpy(dtype=float)
-            y_iff = raw[[f"Y{i+1}" for i in range(4)]].iloc[k].to_numpy(dtype=float)
-            break
-    else:
-        raise ValueError(f"Couldn't not find reference point from {trys} time points.")
+    Lx0 = raw["XSize_um"].iat[0] / 1000.0
+    Ly0 = raw["YSize_um"].iat[0] / 1000.0
+    x_iff = raw[[f"X{i+1}" for i in range(4)]].iloc[0].to_numpy(dtype=float)
+    y_iff = raw[[f"Y{i+1}" for i in range(4)]].iloc[0].to_numpy(dtype=float)
     for k in range(trys):
         if raw["XForce_mN"].iat[k] != 0:
             if raw["txx"].iat[k] == 0:

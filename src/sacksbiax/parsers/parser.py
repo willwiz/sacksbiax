@@ -1,5 +1,5 @@
 __all__ = ["parser"]
-from argparse import ArgumentParser
+import argparse
 from ..data import (
     FileFormat,
     LogLevel,
@@ -9,7 +9,9 @@ from ..data import (
 )
 
 
-parser = ArgumentParser("biaxpp")
+parser = argparse.ArgumentParser(
+    "biaxpp", formatter_class=argparse.ArgumentDefaultsHelpFormatter
+)
 parser.add_argument("names", type=str, nargs="+")
 parser.add_argument(
     "--log-level", type=str.upper, default="INFO", choices=list(LogLevel.__members__)
@@ -28,15 +30,15 @@ parser.add_argument(
 )
 parser.add_argument(
     "--write-mode",
+    "-w",
     type=str.lower,
     default="w",
     choices=list(WriteMode.__members__),
 )
 parser.add_argument(
     "--tag",
-    type="All data",
-    default=None,
-    choices=list(WriteMode.__members__),
+    type=str,
+    default="All data",
 )
 parser.add_argument(
     "--method",

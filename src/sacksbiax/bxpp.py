@@ -2,7 +2,13 @@ from .core.biax import BiaxialKinematics
 from .tools.logging import BasicLogger
 from .data import *
 from .core import *
-from .converter.core import convert_df_2_bx, get_specimen_info
+from .converter.core import (
+    convert_df_2_bx,
+    find_reference_markers_auto,
+    find_reference_markers_every,
+    find_reference_markers_first,
+    get_specimen_info,
+)
 import pandas as pd
 from concurrent import futures
 
@@ -11,12 +17,23 @@ def compile_protocol_data(
     t: BXProtocol,
     raw: pd.DataFrame,
     spec: SpecimenInfo,
-    def_grad: BiaxialKinematics,
     setting: ProgramSettings,
     log: BasicLogger,
 ) -> pd.DataFrame | None:
+    log.debug(f"Working on cycle {t.name}")
     cycle = raw[raw["SetName"] == t.name]
+    log.debug(f"Sorting Data")
+    tags = sort_data_cycle_types(cycle)
     data = convert_df_2_bx(cycle)
+    log.debug(f"Computing kinematics")
+    match setting.ref_state:
+        case ReferenceStateOption.AUTO:
+            x_ref, y_ref = find_reference_markers_auto(raw)
+        case ReferenceStateOption.EVERY:
+            x_ref, y_ref = find_reference_markers_every(cycle)
+        case ReferenceStateOption.FIRST:
+            x_ref, y_ref = find_reference_markers_first(raw)
+    def_grad = BiaxialKinematics(x_ref, y_ref)
     kinematics = compute_kinematics(def_grad, data)
     log.debug(f"Computing kinetics using {setting.stress_method}")
     match setting.stress_method:
@@ -26,27 +43,17 @@ def compile_protocol_data(
             kinetics = compute_kinetics_pk1(spec, kinematics, data)
         case StressMethodOption.NOMINAL:
             kinetics = compute_kinetics_nominal(spec, kinematics, data)
+    log.debug(f"Computing energy")
+    energy = compute_energy(kinematics, kinetics)
     log.debug(f"Computing shear angle")
     shear = compute_shear_angle(kinematics)
-    log.debug(f"Finding loading and and unloading points")
-    cycle_state = cycle["Cycle"]
     log.debug(f"Compiling data from cycle")
-    df = export_kamenskiy_format(data, cycle_state, kinematics, kinetics, shear)
+    df = export_prepped_format(data, tags, kinematics, kinetics, energy, shear)
     df["SetName"] = t.name
-    df = df[[s.name for s in dc.fields(KamenskiyFormat)]]
+    df["Cycle"] = cycle["Cycle"]
+    df = df[[s.name for s in dc.fields(SpecDataFormat)]]
     log.debug(f"Finished processing cycle!")
     return df
-
-
-def find_reference_markers(raw: pd.DataFrame) -> tuple[Vec[f64], Vec[f64]]:
-    preconditioning = raw["SetName"].str.contains("precond", case=False)
-    preload = raw["Cycle"].str.contains("preload", case=False)
-    valid_pts = ~preconditioning & ~preload
-    k = raw[valid_pts].index[0]
-    return (
-        raw[[f"X{i+1}" for i in range(4)]].iloc[k].to_numpy(dtype=float),
-        raw[[f"Y{i+1}" for i in range(4)]].iloc[k].to_numpy(dtype=float),
-    )
 
 
 def main_loop(
@@ -55,16 +62,15 @@ def main_loop(
     log: BasicLogger,
 ):
     ex_name = create_export_name(name, setting)
-    if not ex_name:
+    if ex_name is None:
         log.info(f"{name} already processed, skipped.")
         return
     log.info(f"Working on specimen {name}")
     raw = import_bx_dataframe(name, setting.input_format)
     spec = get_specimen_info(raw)
-    def_grad = BiaxialKinematics(*find_reference_markers(raw))
     df = pd.concat(
         [
-            compile_protocol_data(t, raw, spec, def_grad, setting, log)
+            compile_protocol_data(t, raw, spec, setting, log)
             for _, t in sorted(spec.tests.items())
         ],
         ignore_index=True,
@@ -73,7 +79,7 @@ def main_loop(
     df["Time_S"] = fix_time(df["Time_S"].to_numpy(dtype=float))
     log.info(f"Exporting results to {setting.export_format}: {ex_name}")
     export_bx_dataframe(ex_name, df, setting)
-    log.info(f"Processing complete!!!\n")
+    log.info(f"{name} complete!!!\n")
 
 
 def main(args: InputArgs, log: BasicLogger):

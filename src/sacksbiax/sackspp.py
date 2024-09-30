@@ -31,9 +31,10 @@ def core_loop(
     log.debug(f"Computing shear angle")
     shear = compute_shear_angle(kinematics)
     log.debug(f"Finding loading and and unloading points")
-    cycle_state = parse_cycle(kinematics, cycle)
     log.debug(f"Compiling data from cycle")
-    df = export_kamenskiy_format(data, cycle_state, kinematics, kinetics, shear)
+    df = export_kamenskiy_format(data, kinematics, kinetics, shear)
+    cycle_state = parse_cycle(kinematics, cycle)
+    df["Cycle"] = cycle_state
     log.debug(f"Finished processing cycle!")
     return df
 
@@ -67,7 +68,7 @@ def main_loop(
     setting: ProgramSettings,
     log: BasicLogger,
 ):
-    ex_name = create_export_name(name, setting)
+    ex_name = create_export_name(name, setting, arg_type="dir")
     if ex_name is None:
         log.info(f"{name} already processed, skipped.")
         return

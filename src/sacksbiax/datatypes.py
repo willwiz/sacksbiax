@@ -208,6 +208,21 @@ class RawBiaxFormat:
 
 
 @dc.dataclass(slots=True)
+class CycleTypes:
+    precond: Vec[i32]
+    equibx: Vec[i32]
+    relax: Vec[i32]
+    creep: Vec[i32]
+    preload: Vec[i32]
+    stretch: Vec[i32]
+    recover: Vec[i32]
+    last_cycle: Vec[i32]
+    last_eb: Vec[i32]
+    plotting: Vec[i32]
+    fitting: Vec[i32]
+
+
+@dc.dataclass(slots=True)
 class Kinematics:
     F: MatV[f64]
     Finv: MatV[f64]
@@ -220,3 +235,102 @@ class Kinetics:
     sigma: MatV[f64]
     P: MatV[f64]
     S: MatV[f64]
+    ZSize_mm: Vec[f64]
+
+
+@dc.dataclass(slots=True)
+class Energy:
+    dE: MatV[f64]
+    dH: MatV[f64]
+    dW: Vec[f64]
+    W: Vec[f64]
+
+
+@dc.dataclass(slots=True)
+class SpecMetaData:
+    Name: str
+    data: str
+    duration: float
+    size: tuple[float, float, float]
+    alpha: tuple[float, float]
+    relax: bool
+    creep: bool
+    cidx: int
+    cmax: Vec[f64]
+
+
+@dc.dataclass(slots=True)
+class SpecHealthData:
+    SetName: Vec[char]
+    Cycles: Vec[char]
+    Start: Vec[char]
+    End: Vec[char]
+    Fit: Vec[i32]
+    Plot: Vec[i32]
+    tear: Vec[i32]
+    dift: Vec[i32]
+    hyst: Vec[f64]
+    cidx: int
+    cmax: Vec[f64]
+
+
+@dc.dataclass(slots=True)
+class SpecDataFormat:
+    SetName: Vec[char]
+    Cycle: Vec[char]
+    Time_S: Vec[f64]
+    XSize_um: Vec[f64]
+    YSize_um: Vec[f64]
+    ZSize_um: Vec[f64]
+    XDisplacement_um: Vec[f64]
+    YDisplacement_um: Vec[f64]
+    XForce_mN: Vec[f64]
+    YForce_mN: Vec[f64]
+    Temperature: Vec[f64]
+    X1: Vec[f64]
+    X2: Vec[f64]
+    X3: Vec[f64]
+    X4: Vec[f64]
+    Y1: Vec[f64]
+    Y2: Vec[f64]
+    Y3: Vec[f64]
+    Y4: Vec[f64]
+    ShearAngleDeg: Vec[f64]
+    J: Vec[f64]
+    F11: Vec[f64]
+    F12: Vec[f64]
+    F21: Vec[f64]
+    F22: Vec[f64]
+    C11: Vec[f64]
+    C12: Vec[f64]
+    C21: Vec[f64]
+    C22: Vec[f64]
+    t11: Vec[f64]
+    t12: Vec[f64]
+    t21: Vec[f64]
+    t22: Vec[f64]
+    S11: Vec[f64]
+    S12: Vec[f64]
+    S21: Vec[f64]
+    S22: Vec[f64]
+    dE11: Vec[f64]
+    dE12: Vec[f64]
+    dE21: Vec[f64]
+    dE22: Vec[f64]
+    dH11: Vec[f64]
+    dH12: Vec[f64]
+    dH21: Vec[f64]
+    dH22: Vec[f64]
+    dW: Vec[f64]
+    W: Vec[f64]
+    precond: Vec[i32]
+    preload: Vec[i32]
+    stretch: Vec[i32]
+    recover: Vec[i32]
+    equibx: Vec[i32]
+    last_cycle: Vec[i32]
+    last_eb: Vec[i32]
+    fitting: Vec[i32]
+    plotting: Vec[i32]
+    relax: Vec[i32]
+    creep: Vec[i32]

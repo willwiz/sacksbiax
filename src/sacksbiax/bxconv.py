@@ -20,8 +20,10 @@ def compile_protocol_data(
     setting: ProgramSettings,
     log: BasicLogger,
 ) -> pd.DataFrame | None:
+    log.debug(f"Working on cycle {t.name}")
     cycle = raw[raw["SetName"] == t.name]
     data = convert_df_2_bx(cycle)
+    log.debug(f"Computing kinematics")
     match setting.ref_state:
         case ReferenceStateOption.AUTO:
             x_ref, y_ref = find_reference_markers_auto(raw)
@@ -41,11 +43,10 @@ def compile_protocol_data(
             kinetics = compute_kinetics_nominal(spec, kinematics, data)
     log.debug(f"Computing shear angle")
     shear = compute_shear_angle(kinematics)
-    log.debug(f"Finding loading and and unloading points")
-    cycle_state = cycle["Cycle"]
     log.debug(f"Compiling data from cycle")
-    df = export_kamenskiy_format(data, cycle_state, kinematics, kinetics, shear)
+    df = export_kamenskiy_format(data, kinematics, kinetics, shear)
     df["SetName"] = t.name
+    df["Cycle"] = cycle["Cycle"]
     df = df[[s.name for s in dc.fields(KamenskiyFormat)]]
     log.debug(f"Finished processing cycle!")
     return df
@@ -74,7 +75,7 @@ def main_loop(
     df["Time_S"] = fix_time(df["Time_S"].to_numpy(dtype=float))
     log.info(f"Exporting results to {setting.export_format}: {ex_name}")
     export_bx_dataframe(ex_name, df, setting)
-    log.info(f"Processing complete!!!\n")
+    log.info(f"{name} complete!!!\n")
 
 
 def main(args: InputArgs, log: BasicLogger):
